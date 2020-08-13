@@ -4,22 +4,15 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
+
+	"github.com/stevenwilkin/treasury/bybit"
 )
 
 type fundingMessage struct {
 	Current   float64 `json:"current"`
 	Predicted float64 `json:"predicted"`
-}
-
-type fundingResponse struct {
-	Result []struct {
-		FundingRate          string `json:"funding_rate"`
-		PredictedFundingRate string `json:"predicted_funding_rate"`
-	} `json:"result"`
 }
 
 var (
@@ -32,23 +25,8 @@ func init() {
 }
 
 func fundingHandler(w http.ResponseWriter, r *http.Request) {
-	url := "https://api.bybit.com/v2/public/tickers?symbol=BTCUSD"
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Panic(err.Error())
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Panic(err.Error())
-	}
-
-	var response fundingResponse
-	json.Unmarshal(body, &response)
-
-	current, _ := strconv.ParseFloat(response.Result[0].FundingRate, 64)
-	predicted, _ := strconv.ParseFloat(response.Result[0].PredictedFundingRate, 64)
+	exchange := &bybit.Bybit{}
+	current, predicted := exchange.GetFundingRate()
 
 	fm := fundingMessage{
 		Current:   current,
