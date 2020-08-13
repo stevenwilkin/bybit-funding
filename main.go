@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -10,13 +9,14 @@ import (
 	"github.com/stevenwilkin/treasury/bybit"
 )
 
-type fundingMessage struct {
-	Current   float64 `json:"current"`
-	Predicted float64 `json:"predicted"`
+type funding struct {
+	Current   float64
+	Predicted float64
 }
 
 var (
-	port int
+	port     int
+	exchange *bybit.Bybit
 )
 
 func init() {
@@ -25,25 +25,22 @@ func init() {
 }
 
 func fundingHandler(w http.ResponseWriter, r *http.Request) {
-	exchange := &bybit.Bybit{}
 	current, predicted := exchange.GetFundingRate()
 
-	fm := fundingMessage{
-		Current:   current,
-		Predicted: predicted}
+	f := funding{
+		Current:   current * 100,
+		Predicted: predicted * 100}
 
-	b, err := json.Marshal(fm)
-	if err != nil {
-		log.Println(err)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(b)
+	tmpl.Execute(w, f)
 }
 
 func main() {
 	log.Printf("Starting on http://0.0.0.0:%d\n", port)
-	http.Handle("/", http.FileServer(http.Dir("www")))
-	http.HandleFunc("/funding", fundingHandler)
+
+	http.HandleFunc("/", fundingHandler)
+
+	fs := http.StripPrefix("/static/", http.FileServer(http.Dir("www")))
+	http.Handle("/static/", fs)
+
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
