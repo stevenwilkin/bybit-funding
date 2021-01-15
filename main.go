@@ -25,7 +25,7 @@ func init() {
 }
 
 func fundingHandler(w http.ResponseWriter, r *http.Request) {
-	current, predicted := exchange.GetFundingRate()
+	current, predicted, _ := exchange.GetFundingRate()
 
 	f := funding{
 		Current:   current * 100,
